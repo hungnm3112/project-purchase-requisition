@@ -4,22 +4,26 @@
 > **Quy chuẩn áp dụng:** [`.agents/rules/2-analysis/3_dfd_level_0_standard.md`](../../.agents/rules/2-analysis/3_dfd_level_0_standard.md)  
 > **Đầu ra làm cơ sở cho:**
 > - Bước 4 — Sơ đồ Phân rã Chức năng FDD 3 Cấp & Ma trận RBAC (`md/analysis/4-fdd-and-rbac.md`)
-> - Bước 5 — Thiết kế Cơ sở Dữ liệu (`md/analysis/5-database-design.md`)
+> - Bước 5 — Thiết kế Cơ sở Dữ liệu (`md/analysis/db/5-database-design.md`)
 
 ---
 
-## 1. Nguyên tắc Hộp đen, Bố cục Sơ đồ & Quy ước Kiến trúc
+## 1. Nguyên tắc Hộp đen, Bố cục Sơ đồ & Quy ước Kiến trúc Đã Chốt
 
 1. **Nguyên lý Hộp đen (`Process 0`):**
-   - Toàn bộ tính năng mở rộng **Module Đề xuất mua sắm** được biểu diễn bằng 1 khối trung tâm duy nhất **`Module Đề Xuất Mua Sắm (Process 0)`** ở cột giữa (dạng hình chữ nhật đứng cao để phân bổ thoáng các đầu/đuôi mũi tên). Tuyệt đối không vẽ bảng Database hay phân hệ con bên trong sơ đồ DFD Level 0.
-   - Bố cục 3 cột chuẩn: **Cột Trái** đặt 2 Actor Con người (`ACT-01: Người đề xuất`, `ACT-02: Người phê duyệt`); **Cột Giữa** đặt `Process 0`; **Cột Phải** đặt 2 Actor Hệ thống ngoài (`EXT-01: Hệ thống Nhân sự 24h`, `EXT-02: Module Tasks`).
+   - Toàn bộ **Module Đề xuất mua sắm** được biểu diễn bằng 1 khối trung tâm duy nhất **`Module Đề Xuất Mua Sắm (Process 0)`** ở cột giữa (dạng hình chữ nhật đứng cao để tách thoáng từng cặp mũi tên).
+   - Bố cục 3 cột cân đối (`4` cặp luồng bên trái — `4` cặp luồng bên phải):
+     - **Cột Trái:** `ACT-01: Người đề xuất` (`3` cặp hành động) và `ACT-02: Người phê duyệt` (`1` cặp hành động trực tiếp trên Module Đề xuất).
+     - **Cột Giữa:** `Module Đề Xuất Mua Sắm (Process 0)`.
+     - **Cột Phải:** `EXT-01: Hệ thống Nhân sự 24h` (`1` cặp tương tác) và `EXT-02: Module Tasks` (`3` cặp tương tác).
 2. **Quy tắc Hiển thị Cặp Luồng Dữ liệu theo Tác vụ:**
-   - Không gộp chung nhiều luồng dữ liệu vào 1 mũi tên; mỗi mã hành động `[Tên vai trò - STT]` được biểu diễn thành **1 cặp mũi tên xếp liền nhau** (luồng đi ở trên — luồng trả về ở dưới).
+   - Mỗi mã hành động `[Tên vai trò - STT]` được biểu diễn thành **1 cặp mũi tên xếp liền nhau** (luồng khởi phát ở trên — luồng phản hồi ở dưới).
    - **Màu xanh lá (`#10b981`):** Luồng dữ liệu đi **VÀO** Hệ thống (`Process 0`).
    - **Màu cam (`#f97316`):** Luồng dữ liệu đi **RA** khỏi Hệ thống (`Process 0`).
-3. **Ghi chú Kiến trúc Tích hợp với Module Tasks (Đã chốt):**
-   - Không thêm cột `type` dư thừa vào collection `tasks`.
-   - Khi tạo mới Phiếu đề xuất mua sắm, hệ thống lưu bản ghi Đề xuất mua sắm và tự động tạo Công việc (`Task`) có trường liên kết với Phiếu đề xuất. Trên giao diện chi tiết Công việc, hệ thống kiểm tra nếu có liên kết với Phiếu đề xuất thì hiển thị thông tin Phiếu đề xuất và cụm nút quyết định **`Phê duyệt` / `Từ chối`**.
+3. **Điểm cốt lõi về Luồng Tương tác với `EXT-02: Module Tasks` & `ACT-02: Người phê duyệt`:**
+   - **Khi Tạo phiếu (`revision = 1`) & Sửa phiếu (`revision + 1`):** Hệ thống kích hoạt **Hook đồng bộ** gọi sang `EXT-02: Module Tasks` để tạo Task (gán `ACT-02` nhận việc, nhóm `BGĐ` theo dõi) và **đẩy trực tiếp nội dung phiếu đề xuất / bản cập nhật mới vào tab `Trao đổi & Thảo luận` của Task** (`POST /api/v1/tasks/comments`).
+   - **Khi Xem chi tiết, Thảo luận & Phê duyệt:** `ACT-02` **không đi vào Module Đề xuất mua sắm** để xem chi tiết hay duyệt, mà mở Task trong *"Công việc của tôi"* bên **Module Tasks**, đọc nội dung đề xuất trong phần **Trao đổi & Thảo luận**, trao đổi và bấm **`Phê duyệt` / `Từ chối`** ngay trên giao diện Module Tasks (`[Module Tasks - 03]`).
+   - **Khi `ACT-02` vào Module Đề xuất mua sắm:** Chỉ khi `ACT-02` muốn **Xem thống kê & danh sách các đề xuất** liên quan đến mình (`[Người phê duyệt - 01]`).
 
 ---
 
@@ -38,48 +42,45 @@
   }
 }}%%
 flowchart LR
-    %% Cột Trái: Các Actor Con người (Tăng chiều cao theo số lượng mũi tên)
-    ACT01["&nbsp;<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><b>ACT-01: Người đề xuất</b><br/>(Nhân sự)<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>&nbsp;"]:::humanActor
-    ACT02["&nbsp;<br/><br/><br/><br/><b>ACT-02: Người phê duyệt</b><br/>(Nhân viên duyệt)<br/><br/><br/><br/>&nbsp;"]:::humanActor
+    %% Cột Trái: Các Actor Con người (Chiều cao tương ứng số lượng mũi tên)
+    ACT01["&nbsp;<br/><br/><br/><br/><br/><br/><b>ACT-01: Người đề xuất</b><br/>(Nhân sự)<br/><br/><br/><br/><br/><br/>&nbsp;"]:::humanActor
+    ACT02["&nbsp;<br/><br/><b>ACT-02: Người phê duyệt</b><br/>(Nhân viên duyệt)<br/><br/>&nbsp;"]:::humanActor
 
-    %% Các cặp nhãn bên trái (Xếp thẳng cột từng cặp Input trên - Output dưới)
-    A1_IN["[Người đề xuất - 01]<br/>Yêu cầu lấy hồ sơ cá nhân"]:::inLabel
-    A1_OUT["[Người đề xuất - 01]<br/>Họ tên, chức vụ, phòng ban"]:::outLabel
+    %% Các cặp nhãn bên trái (4 cặp: Input trên - Output dưới)
+    A1_IN["[Người đề xuất - 01]<br/>Thông tin tạo phiếu đề xuất mới"]:::inLabel
+    A1_OUT["[Người đề xuất - 01]<br/>Phiếu đề xuất mới (PENDING, rev 1)"]:::outLabel
 
-    A2_IN["[Người đề xuất - 02]<br/>Từ khóa tìm nhân viên duyệt"]:::inLabel
-    A2_OUT["[Người đề xuất - 02]<br/>Danh sách nhân viên phù hợp"]:::outLabel
+    A2_IN["[Người đề xuất - 02]<br/>Dữ liệu sửa phiếu (đang PENDING)"]:::inLabel
+    A2_OUT["[Người đề xuất - 02]<br/>Phiếu đã cập nhật (rev + 1)"]:::outLabel
 
-    A3_IN["[Người đề xuất - 03]<br/>Thông tin tạo phiếu đề xuất mới"]:::inLabel
-    A3_OUT["[Người đề xuất - 03]<br/>Phiếu đề xuất mới (Chờ duyệt)"]:::outLabel
+    A3_IN["[Người đề xuất - 03]<br/>Bộ lọc thống kê & danh sách"]:::inLabel
+    A3_OUT["[Người đề xuất - 03]<br/>Thống kê & danh sách (gắn link Task)"]:::outLabel
 
-    A4_IN["[Người đề xuất - 04]<br/>Dữ liệu sửa phiếu (Chờ duyệt)"]:::inLabel
-    A4_OUT["[Người đề xuất - 04]<br/>Phiếu đề xuất đã cập nhật"]:::outLabel
+    B1_IN["[Người phê duyệt - 01]<br/>Bộ lọc thống kê & đề xuất của tôi"]:::inLabel
+    B1_OUT["[Người phê duyệt - 01]<br/>Thống kê & danh sách đề xuất"]:::outLabel
 
-    A5_IN["[Người đề xuất - 05]<br/>Bộ lọc / Mã phiếu cần xem"]:::inLabel
-    A5_OUT["[Người đề xuất - 05]<br/>Danh sách & chi tiết phiếu"]:::outLabel
+    %% Cột Giữa: Khối Hộp đen trung tâm (Hình chữ nhật đứng cân đối 4 cặp trái - 4 cặp phải)
+    SYS["&nbsp;<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><b>Module Đề Xuất<br/>Mua Sắm</b><br/>(Process 0)<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>&nbsp;"]:::processNode
 
-    B1_IN["[Người phê duyệt - 01]<br/>Mã phiếu / Bộ lọc phiếu duyệt"]:::inLabel
-    B1_OUT["[Người phê duyệt - 01]<br/>Chi tiết phiếu & trạng thái"]:::outLabel
+    %% Các cặp nhãn bên phải (4 cặp: 1 cặp EXT-01 + 3 cặp EXT-02)
+    E1_REQ["[Hệ thống Nhân sự 24h - 01]<br/>Truy vấn thông tin nhân viên"]:::outLabel
+    E1_RES["[Hệ thống Nhân sự 24h - 01]<br/>Họ tên, chức vụ, chi nhánh"]:::inLabel
 
-    B2_IN["[Người phê duyệt - 02]<br/>Quyết định Đã duyệt / Từ chối"]:::inLabel
-    B2_OUT["[Người phê duyệt - 02]<br/>Phiếu đã cập nhật trạng thái"]:::outLabel
+    T1_REQ["[Module Tasks - 01]<br/>Tạo Task & gửi đề xuất (rev 1) vào Thảo luận"]:::outLabel
+    T1_RES["[Module Tasks - 01]<br/>Mã task_id & bắn thông báo nhảy việc"]:::inLabel
 
-    %% Cột Giữa: Khối Hộp đen trung tâm đổi thành Hình chữ nhật đứng cao
-    SYS["&nbsp;<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><b>Module Đề Xuất<br/>Mua Sắm</b><br/>(Process 0)<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>&nbsp;"]:::processNode
+    T2_REQ["[Module Tasks - 02]<br/>Gửi bản sửa mới (rev + 1) vào Thảo luận Task"]:::outLabel
+    T2_RES["[Module Tasks - 02]<br/>Xác nhận lưu Thảo luận & báo cập nhật"]:::inLabel
 
-    %% Các cặp nhãn bên phải (Xếp thẳng cột từng cặp giống EXT-02)
-    E1_REQ["[Hệ thống Nhân sự 24h - 01]<br/>Truy vấn tìm kiếm / lấy nhân viên"]:::outLabel
-    E1_RES["[Hệ thống Nhân sự 24h - 01]<br/>Danh sách & thông tin nhân viên"]:::inLabel
+    T3_IN["[Module Tasks - 03]<br/>Quyết định Phê duyệt / Từ chối từ UI Task"]:::inLabel
+    T3_OUT["[Module Tasks - 03]<br/>Cập nhật trạng thái phiếu & ghi lên Task"]:::outLabel
 
-    E3_REQ["[Module Tasks - 01]<br/>Yêu cầu tạo Task (Người duyệt & BGĐ)"]:::outLabel
-    E3_RES["[Module Tasks - 01]<br/>Mã task_id & bắn thông báo nhảy việc"]:::inLabel
-
-    %% Cột Phải: Các Actor Hệ thống ngoài (Tăng chiều cao theo số lượng mũi tên)
+    %% Cột Phải: Các Actor Hệ thống ngoài
     EXT01["&nbsp;<br/><br/><b>EXT-01: Hệ thống<br/>Nhân sự 24h</b><br/><br/>&nbsp;"]:::extActor
-    EXT02["&nbsp;<br/><br/><b>EXT-02: Module Tasks</b><br/>(/api/v1/tasks)<br/><br/>&nbsp;"]:::extActor
+    EXT02["&nbsp;<br/><br/><br/><br/><br/><br/><b>EXT-02: Module Tasks</b><br/>(/api/v1/tasks)<br/><br/><br/><br/><br/><br/>&nbsp;"]:::extActor
 
     %% =====================================================
-    %% 1. ACT-01 (5 CẶP: INPUT TRÊN - OUTPUT DƯỚI)
+    %% 1. ACT-01 (3 CẶP: edges 0..14)
     %% =====================================================
     ACT01 --- A1_IN
     A1_IN --> SYS
@@ -99,20 +100,8 @@ flowchart LR
     A3_OUT --> ACT01
     A3_OUT --- SYS
 
-    ACT01 --- A4_IN
-    A4_IN --> SYS
-    ACT01 ~~~ A4_OUT
-    A4_OUT --> ACT01
-    A4_OUT --- SYS
-
-    ACT01 --- A5_IN
-    A5_IN --> SYS
-    ACT01 ~~~ A5_OUT
-    A5_OUT --> ACT01
-    A5_OUT --- SYS
-
     %% =====================================================
-    %% 2. ACT-02 (2 CẶP: INPUT TRÊN - OUTPUT DƯỚI)
+    %% 2. ACT-02 (1 CẶP: edges 15..19)
     %% =====================================================
     ACT02 --- B1_IN
     B1_IN --> SYS
@@ -120,14 +109,8 @@ flowchart LR
     B1_OUT --> ACT02
     B1_OUT --- SYS
 
-    ACT02 --- B2_IN
-    B2_IN --> SYS
-    ACT02 ~~~ B2_OUT
-    B2_OUT --> ACT02
-    B2_OUT --- SYS
-
     %% =====================================================
-    %% 3. EXT-01 (1 CẶP) & EXT-02 (1 CẶP)
+    %% 3. EXT-01 (1 CẶP: edges 20..24)
     %% =====================================================
     SYS --- E1_REQ
     E1_REQ --> EXT01
@@ -135,11 +118,26 @@ flowchart LR
     E1_RES --> SYS
     E1_RES --- EXT01
 
-    SYS --- E3_REQ
-    E3_REQ --> EXT02
-    SYS ~~~ E3_RES
-    E3_RES --> SYS
-    E3_RES --- EXT02
+    %% =====================================================
+    %% 4. EXT-02 (3 CẶP: edges 25..39)
+    %% =====================================================
+    SYS --- T1_REQ
+    T1_REQ --> EXT02
+    SYS ~~~ T1_RES
+    T1_RES --> SYS
+    T1_RES --- EXT02
+
+    SYS --- T2_REQ
+    T2_REQ --> EXT02
+    SYS ~~~ T2_RES
+    T2_RES --> SYS
+    T2_RES --- EXT02
+
+    SYS ~~~ T3_IN
+    T3_IN --> SYS
+    T3_IN --- EXT02
+    SYS --- T3_OUT
+    T3_OUT --> EXT02
 
     %% Định dạng màu sắc các khối
     classDef processNode fill:#4338ca,stroke:#818cf8,stroke-width:3px,color:#ffffff,rx:8px,ry:8px;
@@ -149,33 +147,35 @@ flowchart LR
     classDef outLabel fill:#18181b,stroke:#f97316,stroke-width:1px,color:#ffedd5;
 
     %% Màu đường nối: Xanh lá (#10b981) = Đi vào SYS | Cam (#f97316) = Đi ra khỏi SYS
-    linkStyle 0,1,5,6,10,11,15,16,20,21,25,26,30,31,38,39,43,44 stroke:#10b981,stroke-width:2px;
-    linkStyle 3,4,8,9,13,14,18,19,23,24,28,29,33,34,35,36,40,41 stroke:#f97316,stroke-width:2px;
+    linkStyle 0,1,5,6,10,11,15,16,23,24,28,29,33,34,36,37 stroke:#10b981,stroke-width:2px;
+    linkStyle 3,4,8,9,13,14,18,19,20,21,25,26,30,31,38,39 stroke:#f97316,stroke-width:2px;
 ```
 
 ---
 
 ## 3. Bảng Đặc tả Actor - Hành động 5 Cột
 
-| Actor | Mã | Hành động | Dữ liệu Input (Actor gửi vào) | Dữ liệu Output (Actor nhận lại) |
+| Actor | Mã | Hành động | Dữ liệu Input (Gửi vào `Process 0`) | Dữ liệu Output (Nhận ra từ `Process 0`) |
 |---|:---:|---|---|---|
-| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 01]` | **Lấy thông tin cá nhân người đề xuất (tự động điền khi mở form)** | • Phiên đăng nhập hiện tại của nhân sự (`req.auth` từ `token`). | • Thông tin người đề xuất tự động điền trực tiếp từ `req.auth` (không gọi `EXT-01`): Họ tên, chức vụ (`group_user_name`), bộ phận/chi nhánh (`branch_name`), ngày đề xuất (= ngày tạo). |
-| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 02]` | **Tìm kiếm nhân viên để chọn người duyệt đề xuất** | • Từ khóa tìm kiếm nhân viên (`keyword`: tên hoặc số điện thoại). | • Danh sách nhân viên phù hợp (Họ tên, chức vụ, bộ phận/phòng ban) để chọn làm Người duyệt. |
-| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 03]` | **Tạo mới phiếu đề xuất mua sắm** | • Thông tin người đề xuất.<br>• Nội dung mua sắm: Danh sách sản phẩm (Tên, Số lượng, Hình ảnh hoặc link đính kèm).<br>• Mục đích sử dụng, Tổng giá trị dự kiến, Nguồn kinh phí.<br>• Danh sách nhà cung cấp (Tên, mô tả).<br>• Thời gian dự kiến giao hàng (`từ ngày A -> đến ngày B`).<br>• Nhân viên được chọn duyệt đề xuất (`approver_id`). | • Phiếu đề xuất mua sắm vừa được tạo thành công với trạng thái **`Chờ duyệt`**. |
-| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 04]` | **Cập nhật phiếu đề xuất mua sắm (khi đang `Chờ duyệt`)** | • Mã phiếu đề xuất (`:id`) và các thông tin đề xuất cần chỉnh sửa. | • Phiếu đề xuất mua sắm sau khi cập nhật thành công. |
-| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 05]` | **Xem danh sách và chi tiết phiếu đề xuất mua sắm** | • Mã phiếu đề xuất hoặc tiêu chí lọc danh sách (`page`, `limit`, `keyword`, `status`, `from_date`, `to_date`). | • Danh sách phiếu đề xuất (gắn link nhảy tới Task) và chi tiết nội dung phiếu hiển thị trong UI Tasks kèm trạng thái (`Chờ duyệt`, `Đã duyệt`, `Từ chối`). |
-| **`ACT-02`<br/>Người phê duyệt** | `[Người phê duyệt - 01]` | **Xem danh sách và chi tiết phiếu đề xuất mua sắm** *(Trùng hành động xem với `[Người đề xuất - 05]`)* | • Mã phiếu đề xuất (liên kết trên Task) hoặc tiêu chí lọc danh sách phiếu được giao duyệt. | • Chi tiết nội dung phiếu đề xuất mua sắm cần duyệt và trạng thái hiện tại trong UI Tasks. |
-| **`ACT-02`<br/>Người phê duyệt** | `[Người phê duyệt - 02]` | **Phê duyệt hoặc Từ chối phiếu đề xuất mua sắm** | • Mã phiếu đề xuất (`:id`) và quyết định chọn **`Đã duyệt`** hoặc **`Từ chối`** (kèm lý do/ghi chú nếu có). | • Phiếu đề xuất mua sắm đã chuyển trạng thái sang **`Đã duyệt`** hoặc **`Từ chối`**. |
-| **`EXT-01`<br/>Hệ thống Nhân sự 24h** | `[Hệ thống Nhân sự 24h - 01]` | **Cung cấp danh sách & thông tin nhân viên theo từ khóa/ID** | • *(Hệ thống gửi sang)* Từ khóa tìm kiếm nhân viên (`search`, phân trang) hoặc danh sách `ids` nhân sự cần tra cứu. | • *(Gửi vào Hệ thống)* Danh sách nhân viên đang làm việc kèm họ tên, SĐT, chức vụ, bộ phận/chi nhánh. |
-| **`EXT-02`<br/>Module Tasks** | `[Module Tasks - 01]` | **Tạo Công việc liên kết với Phiếu đề xuất, gắn nhóm BGĐ theo dõi & bắn thông báo** | • *(Hệ thống tự động gọi sang khi lưu phiếu mới)* Dữ liệu tạo Công việc gắn mã phiếu đề xuất, Người giao việc = Người đề xuất, Người nhận việc = Người được chọn duyệt, Người theo dõi = thành viên nhóm **BGĐ** (`BGD_GROUP_ID`). | • *(Gửi vào Hệ thống)* Mã công việc (`task_id`) đã tạo và kích hoạt bắn thông báo trên App/Web để ấn vào nhảy đúng công việc đó. |
+| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 01]` | **Tạo mới phiếu đề xuất mua sắm** *(hồ sơ cá nhân tự trích xuất từ `req.auth`)* | • Chi nhánh mua (`employee_branch`), chức vụ (`employee_position` mặc định từ `req.auth.group_user_name`).<br>• Danh sách thiết bị `items` (`name`, `quantity`, `attachments`).<br>• Mục đích (`purpose`), Tổng chi phí dự kiến (`estimated_total`), Nguồn kinh phí (`funding_source`).<br>• Danh sách nhà cung cấp `suppliers` (`name`, `description`).<br>• Ngày giao dự kiến (`delivery_from`, `delivery_to`), Hạn chót duyệt (`task_deadline`), Người duyệt (`employee_approver_id`). | • Phiếu đề xuất mua sắm vừa tạo (`status = PENDING`, `revision = 1`, đã gắn `task_id` từ Hook tạo Task). |
+| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 02]` | **Cập nhật phiếu đề xuất mua sắm (khi đang `PENDING`)** | • Mã phiếu đề xuất (`:id`) và các trường thông tin đề xuất cần chỉnh sửa. | • Phiếu đề xuất mua sắm đã cập nhật (`revision` tăng `+1`) và tự động đồng bộ bản sửa sang Thảo luận Task qua Hook. |
+| **`ACT-01`<br/>Người đề xuất** | `[Người đề xuất - 03]` | **Xem thống kê & danh sách phiếu đề xuất** | • Bộ lọc thống kê và danh sách (`page`, `limit`, `status`, `employee_branch`, khoảng ngày, phạm vi phiếu của tôi). | • Số liệu thống kê tổng hợp (tổng phiếu, chờ duyệt, đã duyệt, từ chối, tổng tiền dự kiến) và danh sách phiếu gắn link nhảy sang Task (`/tasks?task_id=<task_id>`). |
+| **`ACT-02`<br/>Người phê duyệt** | `[Người phê duyệt - 01]` | **Xem thống kê & danh sách phiếu đề xuất của tôi** *(Trùng hành động tra cứu thống kê/danh sách với `[Người đề xuất - 03]`)* | • Bộ lọc thống kê và danh sách các đề xuất mình được giao duyệt (`employee_approver_id`) hoặc theo dõi. | • Số liệu thống kê và danh sách phiếu đề xuất liên quan (gắn link nhảy sang Task bên Module Tasks). |
+| **`EXT-01`<br/>Hệ thống Nhân sự 24h** | `[Hệ thống Nhân sự 24h - 01]` | **Xác thực & cung cấp thông tin nhân viên theo ID** | • *(Hệ thống nhận về)* Thông tin chi tiết nhân sự đang làm việc (Họ tên, SĐT, chức vụ, chi nhánh). | • *(Hệ thống gửi sang)* Yêu cầu kiểm tra `employee_approver_id` hoặc lấy thông tin nhiều nhân sự theo mảng `[employee_id, employee_approver_id]`. |
+| **`EXT-02`<br/>Module Tasks** | `[Module Tasks - 01]` | **Khởi tạo Task duyệt đề xuất & nhận nội dung phiếu lần đầu (`revision = 1`) vào Thảo luận** *(Gọi từ `HOOK-01`)* | • *(Hệ thống nhận về)* Mã công việc (`task_id`), xác nhận lưu bình luận đề xuất lần 1 và bắn thông báo nhảy việc trên App/Web. | • *(Hook gửi sang)* Yêu cầu tạo Task (`POST /api/v1/tasks/tasks`: `ACT-02` nhận việc, nhóm `BGĐ` theo dõi, `deadline = task_deadline`) + gửi nội dung phiếu (`revision = 1`) vào tab **Trao đổi & Thảo luận** (`POST /api/v1/tasks/comments`). |
+| **`EXT-02`<br/>Module Tasks** | `[Module Tasks - 02]` | **Nhận nội dung bản cập nhật phiếu (`revision + 1`) vào Thảo luận Task** *(Gọi từ `HOOK-02`)* | • *(Hệ thống nhận về)* Xác nhận đã thêm bình luận bản sửa mới vào luồng Thảo luận và bắn thông báo cập nhật trên Task. | • *(Hook gửi sang)* Nội dung phiếu đề xuất mới cập nhật (`revision = 2, 3...`) gửi vào tab **Trao đổi & Thảo luận** của `task_id` (`POST /api/v1/tasks/comments`). |
+| **`EXT-02`<br/>Module Tasks** | `[Module Tasks - 03]` | **Gửi quyết định Phê duyệt / Từ chối của `ACT-02` từ giao diện Task** | • Quyết định **`APPROVED`** hoặc **`REJECTED`** (kèm `reject_reason`) do `ACT-02` thao tác ngay trên giao diện Chi tiết Task bên Module Tasks. | • Bản ghi `PurchaseRequest` đã khóa ở trạng thái `APPROVED` / `REJECTED` (`decided_at = Date.now`) và ghi kết quả duyệt vào Thảo luận Task để báo cho `ACT-01`. |
 
 ---
 
 ## 4. Tóm tắt Số liệu Đầu vào cho Bước 4 (Sơ đồ Phân rã Chức năng FDD 3 Cấp)
 
-- **Tổng số mã tương tác trên DFD Level 0:** `9` mã hành động:
-  - `ACT-01 (Người đề xuất)`: `5` hành động (`[Người đề xuất - 01..05]`, trong đó `[Người đề xuất - 01]` đọc trực tiếp từ `req.auth`).
-  - `ACT-02 (Người phê duyệt)`: `2` hành động (`[Người phê duyệt - 01..02]`).
-  - `EXT-01 (Hệ thống Nhân sự 24h)`: `1` tương tác cung cấp dữ liệu nhân viên phục vụ cho `[Người đề xuất - 02]` và hiển thị thông tin nhân sự.
-  - `EXT-02 (Module Tasks)`: `1` tương tác tích hợp tạo Công việc & thông báo phục vụ ngầm khi thực thi `[Người đề xuất - 03]`.
-- **Hành động trùng giữa các Actor con người:** `[Người đề xuất - 05]` và `[Người phê duyệt - 01]` cùng là chức năng **Xem danh sách và chi tiết phiếu đề xuất mua sắm** (được hợp nhất thành 1 chức năng `FDD-05` trên FDD theo nguyên tắc MECE).
+- **Tổng số cặp tương tác trên DFD Level 0:** `8` cặp (`4` cặp Cột Trái + `4` cặp Cột Phải):
+  - `ACT-01 (Người đề xuất)`: `3` hành động trực tiếp trên Module Đề xuất (`[Người đề xuất - 01..03]`).
+  - `ACT-02 (Người phê duyệt)`: `1` hành động trực tiếp trên Module Đề xuất (`[Người phê duyệt - 01]` — trùng hành động xem thống kê/danh sách với `[Người đề xuất - 03]`) + `1` hành động ra quyết định phê duyệt/từ chối thực hiện từ giao diện **Module Tasks** (`[Module Tasks - 03]`).
+  - `EXT-01 (Hệ thống Nhân sự 24h)`: `1` tương tác tra cứu thông tin nhân sự theo ID.
+  - `EXT-02 (Module Tasks)`: `3` tương tác (`2` chiều đi từ Hook `HOOK-01`, `HOOK-02` đẩy sang Thảo luận Task + `1` chiều quyết định duyệt từ UI Task gửi về).
+- **Công thức Bảo toàn Chức năng Cấp 2 sang Bước 4:**
+  - Chức năng do Người dùng kích hoạt trực tiếp: `(3 + 1 - 1) + 1 = 4` chức năng (`Tạo phiếu đề xuất`, `Cập nhật phiếu đề xuất`, `Xem thống kê & danh sách đề xuất`, `Quyết định phê duyệt/từ chối đề xuất từ Task`).
+  - Hook tự động nội bộ từ Bước 2 (`Bảng 2`): `+2` chức năng (`HOOK-01: Khởi tạo Task & đẩy đề xuất lần 1 vào Thảo luận`, `HOOK-02: Đồng bộ bản cập nhật đề xuất vào Thảo luận Task`).
+  - **Tổng cộng = `4 + 2 = 6` Chức năng Cấp 2** (tách bạch rõ giữa nhóm chức năng trên Module Đề xuất và nhóm chức năng tích hợp Module Tasks).
